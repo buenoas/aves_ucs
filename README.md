@@ -8,4 +8,4 @@ Os arquivos são os seguintes:
 
 * **SALVE_Aves.txt**: Planilha de dados sobre as aves do Brasil disponível na plataforma [SALVE](https://salve.icmbio.gov.br). O arquivo ".csv" gerado pelo botão "Exportar tabela", que resultou da busca com o filtro "Grupo = Aves", foi baixado em 19-08-2023, importado no programa Excel, copiado e depois colado no programa Bloco de Notas para ser salvo em formato ".txt", como texto separado por tabulações.
 
-* **aves_ucs**: código R utilizado para organizar e analisar os dados, escrito por Anderson Saldanha Bueno. O código R está em constante atualização.
+* **Rcode**: código R utilizado para organizar e analisar os dados, escrito por Anderson Saldanha Bueno. O Rcode está em constante atualização.
