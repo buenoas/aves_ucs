@@ -1,0 +1,135 @@
+#############
+### SALVE ###
+#############
+
+# Carrega os pacotes
+library(stringr)
+library(stringi)
+library(rgeos)
+library(rgdal)
+
+# Importa os dados baixados do SALVE
+salve = read.csv("https://raw.githubusercontent.com/buenoas/aves_ucs/main/SALVE_Aves.txt", sep = "\t")
+
+# Remove as categorias de não ameaça
+salve = subset(salve, Categoria != "Não Aplicável")
+salve = subset(salve, Categoria != "Menos Preocupante")
+salve = subset(salve, Categoria != "Regionalmente Extinta")
+salve = subset(salve, Categoria != "Extinta na Natureza")
+salve = subset(salve, Categoria != "Extinta")
+
+# Importa a lista de aves do CBRO 2021
+cbro = read.csv("https://raw.githubusercontent.com/buenoas/aves_ucs/main/CBRO_2021.txt", sep = "\t")
+
+# Cria uma coluna com o nome das especies conforme CBRO 2021
+salve$CBRO_2021 = salve$Nome_Cientifico
+
+# Verifica as especies que os nomes nao batem com CBRO 2021
+salve$CBRO_2021[is.na(match(salve$CBRO_2021, cbro$Nome.do.táxon..sem.autoria.))]
+
+# Corrige o nome das especies
+salve$CBRO_2021[salve$CBRO_2021 == "Hylexetastes brigidai"] = "Hylexetastes uniformis brigidai"
+salve$CBRO_2021[salve$CBRO_2021 == "Selenidera gouldii baturitensis"] = "Selenidera gouldii"
+salve$CBRO_2021[salve$CBRO_2021 == "Porzana spiloptera"] = "Laterallus spilopterus"
+salve$CBRO_2021[salve$CBRO_2021 == "Procnias albus wallacei"] = "Procnias albus"
+
+# Cria uma coluna com o codigo da categoria de ameaca
+salve$Categoria_Codigo = salve$Categoria
+
+salve$Categoria_Codigo[salve$Categoria_Codigo == "Criticamente em Perigo"] = "CR"
+salve$Categoria_Codigo[salve$Categoria_Codigo == "Em Perigo"] = "EN"
+salve$Categoria_Codigo[salve$Categoria_Codigo == "Vulnerável"] = "VU"
+salve$Categoria_Codigo[salve$Categoria_Codigo == "Quase Ameaçada"] = "NT"
+salve$Categoria_Codigo[salve$Categoria_Codigo == "Dados Insuficientes"] = "DD"
+
+# Cria uma coluna para indicar as especies CR que sao CR (PEW)
+# Criticamente em Perigo - Possivelmente Extinta
+salve$CR_PEW = FALSE
+salve$CR_PEW[salve$Possivemente_Extinta == "Sim"] = TRUE
+
+# Corrige a categoria de ameaca de Terenura sicki
+# A especie eh CR e nao EN
+salve$Categoria[salve$CBRO_2021 == "Terenura sicki"] = "Criticamente em Perigo"
+salve$Categoria_Codigo[salve$CBRO_2021 == "Terenura sicki"] = "CR"
+
+# Corrige a categoria de ameaca de Crax fasciolata pinima
+# A especie eh CR e nao CR (PEW)
+salve$Possivemente_Extinta[salve$CBRO_2021 == "Crax fasciolata pinima"] = ""
+salve$CR_PEW[salve$CBRO_2021 == "Crax fasciolata pinima"] = FALSE
+
+
+# Separa as UCs em que cada especie ocorre
+uc_fed = strsplit(salve$Unidade_de_Conservacao_Federal, split = ",")
+uc_fed = lapply(uc_fed, str_squish) # remove espacos desnecessarios
+
+uc_est = strsplit(salve$Unidade_de_Conservacao_Estadual, split = ",")
+uc_est = lapply(uc_est, str_squish) # remove espacos desnecessarios
+
+rppn = strsplit(salve$RPPN, split = ",")
+rppn = lapply(rppn, str_squish) # remove espacos desnecessarios
+
+ucs_todas = list()
+
+for (i in 1:nrow(salve)) {
+  
+  ucs_todas[[i]] = c(uc_fed[[i]], uc_est[[i]], rppn[[i]])
+  
+  print(i)
+  
+}
+
+# Deixa os nomes em caixa alta
+ucs_todas = lapply(ucs_todas, str_to_upper)
+
+# Remove os caracteres especiais (acentos, til, cedilha)
+ucs_todas = lapply(ucs_todas,
+                   function(x) stri_trans_general(str = x, id = "Latin-ASCII"))
+
+# Especies que nao ocorrem em nenhuma unidade de conservacao
+list_number = which(lapply(ucs_todas, length) == 0)
+salve$CBRO_2021[list_number]
+
+
+# Cria uma matriz de especies por reserva
+sp_uc = data.frame(CBRO_2021 = rep(salve$CBRO_2021,
+                                   lapply(ucs_todas, length)),
+                   ucs = unlist(ucs_todas),
+                   occurrence = 1)
+
+sp_uc_mx = tapply(sp_uc$occurrence,
+                  list(sp_uc$ucs, sp_uc$CBRO_2021),
+                  sum)
+
+# Converte NA em zero                   
+sp_uc_mx[is.na(sp_uc_mx)] = 0
+
+# Visualiza a matriz
+head(sp_uc_mx)
+
+# Salva a matriz
+#write.csv(sp_uc_mx, "sp_uc_mx.csv")
+
+# Faz um grafico do numero de reservas em que cada especie ocorre
+plot(sort(rowSums(sp_uc_mx)),
+     xlab = "Número da espécie",
+     ylab = "Número de unidades de conservação")
+
+
+###############################
+### UNIDADES DE CONSERVACAO ###
+###############################
+
+ucs_shp = readOGR(dsn = "C:/Users/Anderson/OneDrive/Documents/Pesquisa/Andrei_Manu/shp_cnuc_2023_07-1", layer = "ucs_junho_2023_WGS84")
+
+# Padroniza o nome das UCs
+ucs_shp$nome_uc_formatado = ucs_shp$nome_uc # cria uma nova coluna
+
+ucs_shp$nome_uc_formatado = str_squish(ucs_shp$nome_uc_formatado) # remove espacos desnecessarios
+ucs_shp$nome_uc_formatado = str_to_upper(ucs_shp$nome_uc_formatado) # nomes em caixa alta
+ucs_shp$nome_uc_formatado = stri_trans_general(str = ucs_shp$nome_uc_formatado, id = "Latin-ASCII") # remove caracteres especiais (acentos, cedilha, etc)
+
+# Nome das UCs no SALVE
+ucs_salve = rownames(sp_uc_mx)
+
+# Compara os nomes divergente entre o shapefile e SALVE
+identical(unique(ucs_shp$nome_uc_formatado), ucs_shp$nome_uc_formatado)
