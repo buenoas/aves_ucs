@@ -139,4 +139,4 @@ ucs_shp$nome_uc_formatado = stri_trans_general(str = ucs_shp$nome_uc_formatado, 
 ucs_salve = rownames(sp_uc_mx)
 
 # Compara os nomes divergente entre o shapefile e SALVE
-match(ucs_salve, unique(ucs_shp$nome_uc_formatado))
+table(!is.na(match(ucs_salve, unique(ucs_shp$nome_uc_formatado))))
