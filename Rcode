@@ -91,11 +91,13 @@ salve$CBRO_2021[list_number]
 
 
 # Cria uma matriz de especies por reserva
+# Tabela no formato longo
 sp_uc = data.frame(CBRO_2021 = rep(salve$CBRO_2021,
                                    lapply(ucs_todas, length)),
                    ucs = unlist(ucs_todas),
                    occurrence = 1)
 
+# Matriz de incidencia de especies nas unidades de conservacao
 sp_uc_mx = tapply(sp_uc$occurrence,
                   list(sp_uc$ucs, sp_uc$CBRO_2021),
                   sum)
@@ -110,16 +112,21 @@ head(sp_uc_mx)
 #write.csv(sp_uc_mx, "sp_uc_mx.csv")
 
 # Faz um grafico do numero de reservas em que cada especie ocorre
-plot(sort(rowSums(sp_uc_mx)),
-     xlab = "Número da espécie",
+plot(sort(rowSums(sp_uc_mx), decreasing = TRUE),
+     xlab = "ID da espécie",
      ylab = "Número de unidades de conservação")
 
+# Histograma
+hist(rowSums(sp_uc_mx),
+     main = NULL,
+     xlab = "Número de espécies ameaçadas na unidades de conservação",
+     ylab = "Número de unidades de conservação")
 
 ###############################
 ### UNIDADES DE CONSERVACAO ###
 ###############################
 
-ucs_shp = readOGR(dsn = "C:/Users/Anderson/OneDrive/Documents/Pesquisa/Andrei_Manu/shp_cnuc_2023_07-1", layer = "ucs_junho_2023_WGS84")
+ucs_shp = readOGR(dsn = "C:/Users/Anderson/OneDrive/Documents/Pesquisa/Andrei_Manu/shp_cnuc_2023_07-1", layer = "cnuc_2023_07")
 
 # Padroniza o nome das UCs
 ucs_shp$nome_uc_formatado = ucs_shp$nome_uc # cria uma nova coluna
@@ -132,4 +139,4 @@ ucs_shp$nome_uc_formatado = stri_trans_general(str = ucs_shp$nome_uc_formatado, 
 ucs_salve = rownames(sp_uc_mx)
 
 # Compara os nomes divergente entre o shapefile e SALVE
-identical(unique(ucs_shp$nome_uc_formatado), ucs_shp$nome_uc_formatado)
+match(ucs_salve, unique(ucs_shp$nome_uc_formatado))
