@@ -128,20 +128,23 @@ hist(rowSums(sp_uc_mx),
 ### UNIDADES DE CONSERVACAO ###
 ###############################
 
+# Poligonos das UCs
 ucs_shp = readOGR(dsn = "C:/Users/Anderson/OneDrive/Documents/Pesquisa/Andrei_Manu/shp_cnuc_2023_07-1", layer = "cnuc_2023_07")
 
-# Padroniza o nome das UCs
-ucs_shp$nome_uc_formatado = ucs_shp$nome_uc # cria uma nova coluna
+# Pontos das UCs sem poligono
+ucs_pts = readOGR(dsn = "C:/Users/Anderson/OneDrive/Documents/Pesquisa/Andrei_Manu/shp_cnuc_2023_07-1", layer = "cnuc_2023_07_pontos")
 
-ucs_shp$nome_uc_formatado = str_squish(ucs_shp$nome_uc_formatado) # remove espacos desnecessarios
-ucs_shp$nome_uc_formatado = str_to_upper(ucs_shp$nome_uc_formatado) # nomes em caixa alta
-ucs_shp$nome_uc_formatado = stri_trans_general(str = ucs_shp$nome_uc_formatado, id = "Latin-ASCII") # remove caracteres especiais (acentos, cedilha, etc)
+# Junta o codigo e o nome das UCs dos objetos "ucs_shp" e "ucs_pts"
+ucs = data.frame(codigo_uc = c(ucs_shp$cd_cnuc, ucs_pts$codigo_uc),
+                 nome_uc = c(ucs_shp$nome_uc, ucs_pts$nome_uc))
+
+# Formata o nome das UCs
+ucs$nome_uc = str_squish(ucs$nome_uc) # remove espacos desnecessarios
+ucs$nome_uc = str_to_upper(ucs$nome_uc) # nomes em caixa alta
+ucs$nome_uc = stri_trans_general(str = ucs$nome_uc, id = "Latin-ASCII") # remove caracteres especiais (acentos, cedilha, etc)
 
 # Nome das UCs no SALVE
 ucs_salve = rownames(sp_uc_mx)
 
-# Nome das UCs no shapefile
-ucs_shp_formatado = unique(ucs_shp$nome_uc_formatado)
-
 # Compara os nomes divergente entre o shapefile e SALVE
-ucs_salve[is.na(match(ucs_salve, ucs_shp_formatado))]
+ucs_salve[is.na(match(ucs_salve, ucs$nome_uc))]
