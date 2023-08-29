@@ -124,6 +124,7 @@ hist(rowSums(sp_uc_mx),
      xlab = "Número de espécies ameaçadas na unidades de conservação",
      ylab = "Número de unidades de conservação")
 
+
 ###############################
 ### UNIDADES DE CONSERVACAO ###
 ###############################
